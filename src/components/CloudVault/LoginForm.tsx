@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { signIn, resetPassword } from 'aws-amplify/auth';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Cloud, Lock, Mail } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
+
+// Declare global AWS types
+declare global {
+  interface Window {
+    AWS: any;
+  }
+}
 
 export const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -15,13 +21,17 @@ export const LoginForm = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
     try {
-      await signIn({ username: email, password });
-      toast({
-        title: "Success!",
-        description: "Logged in successfully!",
-      });
-      window.location.reload();
+      if (window.AWS) {
+        const { Auth } = window.AWS;
+        await Auth.signIn(email, password);
+        toast({
+          title: "Success!",
+          description: "Logged in successfully!",
+        });
+        window.location.reload();
+      }
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -44,11 +54,14 @@ export const LoginForm = () => {
     }
     
     try {
-      await resetPassword({ username: email });
-      toast({
-        title: "Reset Code Sent",
-        description: "Password reset code sent to your email.",
-      });
+      if (window.AWS) {
+        const { Auth } = window.AWS;
+        await Auth.forgotPassword(email);
+        toast({
+          title: "Reset Code Sent",
+          description: "Password reset code sent to your email.",
+        });
+      }
     } catch (err: any) {
       toast({
         title: "Error",
@@ -66,14 +79,14 @@ export const LoginForm = () => {
             <Cloud className="h-8 w-8 text-white" />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold text-white">
           Welcome Back to CloudVault
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+            <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-white">
               <Mail className="h-4 w-4" />
               Email
             </Label>
@@ -83,12 +96,12 @@ export const LoginForm = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              className="bg-white/50 border-white/30 focus:border-primary"
+              className="bg-white/50 border-white/30 focus:border-primary text-gray-800"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
+            <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-white">
               <Lock className="h-4 w-4" />
               Password
             </Label>
@@ -98,7 +111,7 @@ export const LoginForm = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="bg-white/50 border-white/30 focus:border-primary"
+              className="bg-white/50 border-white/30 focus:border-primary text-gray-800"
               required
             />
           </div>
@@ -113,7 +126,7 @@ export const LoginForm = () => {
             type="button" 
             variant="ghost" 
             onClick={handleForgotPassword} 
-            className="w-full text-primary hover:text-accent hover:bg-white/10"
+            className="w-full text-white hover:text-accent hover:bg-white/10"
           >
             Forgot Password?
           </Button>

@@ -1,90 +1,98 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser } from 'aws-amplify/auth';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
-import './AmplifyConfig';
+import FileManager from './FileManager';
 import cloudHero from '@/assets/cloud-hero.jpg';
 
-// Simple file manager using your original approach with modern UI
-const SimpleFileManager = () => {
+// Declare global AWS types
+declare global {
+  interface Window {
+    AWS: any;
+  }
+}
+
+// AWS configuration exactly like your original
+const configureAWS = () => {
+  if (typeof window !== 'undefined' && window.AWS) {
+    const { Amplify } = window.AWS;
+    
+    Amplify.configure({
+      Auth: {
+        region: 'ap-south-1', 
+        userPoolId: 'ap-south-1_y4GGRCtdR',
+        userPoolWebClientId: '3thf1uf9n8bc7u0sogqv0bjrts',
+        authenticationFlowType: 'USER_PASSWORD_AUTH'
+      },
+      Storage: {
+        region: 'ap-south-1',
+        bucket: 'adler-personal-storage',
+        identityPoolId: 'ap-south-1:ce4fa149-520e-44b6-a006-128b8ef30c1b'
+      },
+      API: {
+        endpoints: [
+          {
+            name: 'CV_v1',
+            endpoint: 'https://necll2p9x2.execute-api.ap-south-1.amazonaws.com/Production',
+            region: 'ap-south-1'
+          }
+        ]
+      }
+    });
+  }
+};
+
+const CloudVaultApp = () => {
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentUser()
-      .then(user => setUser(user))
-      .catch(() => setUser(null));
+    // Load AWS SDK and configure
+    const script = document.createElement('script');
+    script.src = 'https://sdk.amazonaws.com/js/aws-sdk-2.1286.0.min.js';
+    script.onload = () => {
+      configureAWS();
+      checkUser();
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
   }, []);
 
-  const handleSignOut = async () => {
+  const checkUser = async () => {
     try {
-      const { signOut } = await import('aws-amplify/auth');
-      await signOut();
-      window.location.reload();
+      if (window.AWS) {
+        const { Auth } = window.AWS;
+        const currentUser = await Auth.currentAuthenticatedUser();
+        setUser(currentUser);
+      }
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.log('No authenticated user');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (user) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen" style={{
-        background: `linear-gradient(135deg, rgba(54, 159, 245, 0.9), rgba(57, 177, 144, 0.9)), url(${cloudHero})`,
+      <div className="min-h-screen flex items-center justify-center" style={{
+        background: `linear-gradient(135deg, rgba(54, 159, 245, 0.95), rgba(57, 177, 144, 0.95)), url(${cloudHero})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}>
-        <div className="container mx-auto p-6">
-          {/* Header */}
-          <div className="glass-morphism rounded-2xl p-6 mb-6 border border-white/20">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 cloud-gradient rounded-xl flex items-center justify-center">
-                  <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white">CloudVault</h1>
-                  <p className="text-white/80">Welcome back, {user.username}</p>
-                </div>
-              </div>
-              <button 
-                onClick={handleSignOut}
-                className="px-6 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all duration-300 border border-white/30"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-
-          {/* File Manager Content */}
-          <div className="glass-morphism rounded-2xl p-8 border border-white/20">
-            <div className="text-center py-12">
-              <div className="w-24 h-24 cloud-gradient rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse-slow">
-                <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.413V13H5.5z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-4">Your Cloud Storage is Ready!</h2>
-              <p className="text-white/80 mb-8 max-w-md mx-auto">
-                All your AWS configurations are preserved. The file management functionality has been modernized with a beautiful interface.
-              </p>
-              <div className="bg-white/10 rounded-lg p-6 text-left max-w-2xl mx-auto">
-                <h3 className="text-lg font-semibold text-white mb-3">Original Features Preserved:</h3>
-                <ul className="text-white/90 space-y-2">
-                  <li>• AWS Amplify authentication with your user pool</li>
-                  <li>• S3 storage with your bucket configuration</li>
-                  <li>• API Gateway integration for file operations</li>
-                  <li>• Drag & drop file uploads</li>
-                  <li>• Multiple file download with ZIP compression</li>
-                  <li>• Recycle bin functionality</li>
-                  <li>• Folder creation and management</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+        <div className="text-center text-white">
+          <div className="animate-spin w-12 h-12 border-4 border-white border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p>Loading CloudVault...</p>
         </div>
       </div>
     );
+  }
+
+  if (user) {
+    return <FileManager />;
   }
 
   return (
@@ -155,4 +163,4 @@ const SimpleFileManager = () => {
   );
 };
 
-export default SimpleFileManager;
+export default CloudVaultApp;

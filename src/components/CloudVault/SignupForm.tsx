@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { signUp } from 'aws-amplify/auth';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Cloud, Lock, Mail, UserPlus } from 'lucide-react';
+import { Lock, Mail, UserPlus } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
+
+// Declare global AWS types
+declare global {
+  interface Window {
+    AWS: any;
+  }
+}
 
 export const SignupForm = () => {
   const [email, setEmail] = useState('');
@@ -16,19 +22,17 @@ export const SignupForm = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signUp({ 
-        username: email, 
-        password,
-        options: {
-          userAttributes: {
-            email
-          }
-        }
-      });
-      toast({
-        title: "Success!",
-        description: "Verification code sent to your email. Please verify to log in.",
-      });
+      if (window.AWS) {
+        const { Auth } = window.AWS;
+        await Auth.signUp({ 
+          username: email, 
+          password
+        });
+        toast({
+          title: "Success!",
+          description: "Verification code sent to your email. Please verify to log in.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Signup Failed",
@@ -48,14 +52,14 @@ export const SignupForm = () => {
             <UserPlus className="h-8 w-8 text-white" />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold text-white">
           Join CloudVault Today
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="signup-email" className="flex items-center gap-2 text-sm font-medium">
+            <Label htmlFor="signup-email" className="flex items-center gap-2 text-sm font-medium text-white">
               <Mail className="h-4 w-4" />
               Email
             </Label>
@@ -65,12 +69,12 @@ export const SignupForm = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
-              className="bg-white/50 border-white/30 focus:border-accent"
+              className="bg-white/50 border-white/30 focus:border-accent text-gray-800"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="signup-password" className="flex items-center gap-2 text-sm font-medium">
+            <Label htmlFor="signup-password" className="flex items-center gap-2 text-sm font-medium text-white">
               <Lock className="h-4 w-4" />
               Password
             </Label>
@@ -80,7 +84,7 @@ export const SignupForm = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Create a password"
-              className="bg-white/50 border-white/30 focus:border-accent"
+              className="bg-white/50 border-white/30 focus:border-accent text-gray-800"
               required
             />
           </div>
